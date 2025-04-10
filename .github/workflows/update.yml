@@ -66,3 +66,8 @@ jobs:
 
           # Push all commits to the PR branch
           git push origin HEAD:${{ github.head_ref }}
+      - name: Auto merge Dependabot PR
+        uses: peter-evans/merge-pull-request@v2
+        with:
+          pull-request-number: ${{ github.event.pull_request.number }}
+          merge-method: squash
