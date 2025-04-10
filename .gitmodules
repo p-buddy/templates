@@ -1,12 +1,12 @@
 [submodule "tslib-devcontainer-template"]
-	path = tslib-devcontainer-template
+	path = modules/tslib-devcontainer-template
 	url = git@github.com:p-buddy/tslib-devcontainer-template.git
 	branch = main
 [submodule "tslibcli-devcontainer-template"]
-	path = tslibcli-devcontainer-template
+	path = modules/tslibcli-devcontainer-template
 	url = git@github.com:p-buddy/tslibcli-devcontainer-template.git
 	branch = main
 [submodule "pnpm-devcontainer-template"]
-	path = pnpm-devcontainer-template
+	path = modules/pnpm-devcontainer-template
 	url = git@github.com:p-buddy/pnpm-devcontainer-template.git
 	branch = main
