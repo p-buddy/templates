@@ -1,0 +1,68 @@
+name: Update Submodule Content on Dependabot PR
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - 'modules/**'
+
+permissions:
+  contents: write  # allow pushing commits to the repo
+
+jobs:
+  update_submodules:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.user.login == 'dependabot[bot]' }}
+    steps:
+      - name: Check out PR branch
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.head_ref }}    # checkout Dependabot's branch (head of PR)
+          fetch-depth: 0                # fetch full history for diff
+
+      - name: Fetch base branch
+        run: git fetch origin ${{ github.base_ref }}  # fetch base to compare changes
+
+      - name: Setup Node (for npx)
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'  # ensure Node.js & npx are available
+
+      - name: Update changed submodules with degit
+        run: |
+          # List files changed from base...HEAD, filter those in modules/ directory
+          changed_files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          updated_subs=""
+          for file in $changed_files; do
+            if [[ "$file" == modules/* ]]; then
+              sub="${file#modules/}"
+              # Avoid duplicates in updated_subs list
+              [[ " $updated_subs " != *" $sub "* ]] && updated_subs+=" $sub"
+            fi
+          done
+
+          if [[ -z "$updated_subs" ]]; then
+            echo "No submodule updates found."; exit 0;
+          fi
+
+          # Set Git user for committing
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          # Loop through each updated submodule and update its content
+          for sub in $updated_subs; do
+            # Get the submodule's URL from .gitmodules and convert SSH URL to HTTPS
+            url=$(git config -f .gitmodules submodule."$sub".url)
+            if [[ "$url" == git@github.com:* ]]; then
+              https_url="https://github.com/${url#git@github.com:}"
+            else
+              https_url="$url"
+            fi
+
+            echo "Updating submodule '$sub' from $https_url"
+            npx degit "$https_url" "$sub" --force       # copy submodule repo content into ./<sub> folder
+            git add "$sub"
+            git commit -m "chore: update root folder for updated submodule $sub"
+          done
+
+          # Push all commits to the PR branch
+          git push origin HEAD:${{ github.head_ref }}
